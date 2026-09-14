@@ -152,6 +152,37 @@ config DWMAC_QCOM_ETHQOS
 	  This selects the Qualcomm ETHQOS glue layer support for the
 	  stmmac device driver.
 
+config SHIKRA_ETHQOS_RECOVERY
+	tristate "Qualcomm Shikra ETHQOS thin recovery driver"
+	default n
+	depends on OF && (ARCH_QCOM || COMPILE_TEST) && COMMON_CLK && RESET_CONTROLLER
+	help
+	  Minimal standalone platform driver for the Qualcomm Shikra EVK
+	  that restores EMAC0 clock and TI DP83867 PHY reset resources
+	  after the qcom-ethqos driver has been unbound from the
+	  5d00000.ethernet platform device.
+
+	  When qcom-ethqos is unbound, it asserts GPIO135 (DP83867 PHY
+	  reset, active-low) and disables all six EMAC0 clocks
+	  (stmmaceth, pclk, ptp_ref, rgmii, axi-noc, pcie-tile-axi-noc).
+	  A subsequent bind attempt fails with "MDIO device at address 7
+	  is missing" and "cannot attach to PHY (-ENODEV)".
+
+	  This recovery driver:
+	    1. Deasserts the GCC EMAC0 reset (resets = <&gcc 3>)
+	    2. Enables all six EMAC0 clocks
+	    3. Performs the DP83867 PHY reset sequence via GPIO135
+	       (assert 10 ms, deassert, wait 50 ms)
+
+	  Default mode (cleanup_on_remove=false): hardware state is
+	  PRESERVED on unbind so vfio-platform can bind immediately
+	  and the DPDK PMD (stmmac_pmd) takes ownership via VFIO.
+
+	  Say Y or M if you need to support unbind/rebind of qcom-ethqos
+	  or DPDK handoff on the Shikra EVK platform.
+
+	  If unsure, say N.
+
 config DWMAC_RENESAS_GBETH
 	tristate "Renesas RZ/V2H(P) GBETH and RZ/T2H, RZ/N2H GMAC support"
 	default ARCH_RENESAS
